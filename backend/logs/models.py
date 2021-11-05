@@ -1,7 +1,6 @@
 import os 
 from django.db import models
-import pandas as pd
-import pm4py 
+import pandas as pd 
 from pm4py.objects.conversion.log import variants
 from pm4py.objects.log.importer import xes
 from pm4py.objects.log.importer.xes import importer as xes_importer_factory
@@ -37,15 +36,8 @@ class Log(models.Model):
     def to_df(self):
         return log_to_data_frame.apply(self.pm4py_log())
 
-class LogInstance():
-    pm4py_log = None
-    def __init__(self, log):
-        self.pm4py_log = log
-
     def get_properties(self):
-        log 
         properties = get_properties(self.pm4py_log())
-        for columnName, columnAlias in properties.items(): 
         return properties
 
     def generate_dfg(self, percentage_most_freq_edges=100, type=dfg_discovery.Variants.FREQUENCY):
