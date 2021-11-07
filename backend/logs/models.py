@@ -18,6 +18,10 @@ from helpers.dfg_helper import convert_dfg_to_dict
 from helpers.g6_helpers import dfg_dict_to_g6
 from django.forms.models import model_to_dict
 
+
+"""
+    Database Model to handle log files 
+"""
 class Log(models.Model):
     log_file = models.FileField(upload_to='uploaded_logs')
     log_name = models.CharField(max_length=500)
@@ -40,7 +44,9 @@ class Log(models.Model):
 
 
 
-
+"""
+    Object Handler that can be instantiated from a Log Object, parses log from file on creation 
+"""
 
 class LogObjectHandler():
     log_object = None 
@@ -53,7 +59,7 @@ class LogObjectHandler():
         return self.log 
 
     def pk(self):
-        return self.log.pk
+        return self.log_object.pk
 
     def to_df(self):
         return log_to_data_frame.apply(self.log)
@@ -61,8 +67,12 @@ class LogObjectHandler():
     def get_properties(self):
         log_df = self.to_df()
         results = {}
+
+        #the columnNames are the different attributues e.g: there is one column concet:name that refers to the activity exectued in the event
         for columnName, columnValues in log_df.iteritems():
+            #get all values in that colum e.g. all events, drop NA values (Nan, Nil, etc)
             values_without_na = columnValues.dropna()
+            #build a dictinoray in the form of dict.attribute == list of of values for that attribute  eg dict['concept:name'] = ['Send Fine',...]
             results[columnName] = list(set(values_without_na.tolist()))
         return results
 
@@ -72,9 +82,13 @@ class LogObjectHandler():
         activities_count = get_event_attribute_values(log, "concept:name")
         dfg, sa, ea, activities_count = dfg_filtering.filter_dfg_on_paths_percentage(dfg, sa, ea, activities_count, percentage_most_freq_edges)
         return dfg
+
     def g6(self):
         return dfg_dict_to_g6(convert_dfg_to_dict(self.generate_dfg()))
     
+    """
+    method to utilize pythons dict auto serialization when passing as json dump to js on client side
+    """
     def to_dict(self):
         ret = model_to_dict(self.log_object)
         ret['g6'] = self.g6()
