@@ -5,7 +5,7 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from django.views.generic.base import TemplateView, View
 from helpers.upload_file import handle_uploaded_file
-from logs.models import Log
+from logs.models import Log, LogObjectHandler
 from django.core import serializers
 from helpers.g6_helpers import dfg_dict_to_g6
 from helpers.dfg_helper import convert_dfg_to_dict
@@ -26,6 +26,16 @@ class LogsJsonView(View):
             return JsonResponse({"result":[Log.objects.filter(id=id)[0].to_dict()]})
         else: 
             return JsonResponse({"result":[ log.to_dict() for log in Log.objects.all() ]})
+
+class CompareLogsJson(View):
+    def get(self, request, *args, **kwars):
+        #extract the pks/ids from the query url
+        nr_of_comparisons = int(request.GET['nr_of_comparisons'])
+        pks = [ request.GET[f'log{i}'] for i in range(1, nr_of_comparisons+1)]
+        logs = [ LogObjectHandler(Log.objects.get(pk=pk)).to_dict() for pk in pks ]
+
+        return JsonResponse({'logs': logs})
+
 class CompareLogs(TemplateView):
     template_name = 'compare.html'
 
@@ -33,12 +43,9 @@ class CompareLogs(TemplateView):
         #extract the pks/ids from the query url
         nr_of_comparisons = int(request.GET['nr_of_comparisons'])
         pks = [ request.GET[f'log{i}'] for i in range(1, nr_of_comparisons+1)]
-        logs = [ Log.objects.get(pk=pk) for pk in pks ]
+        logs = [ LogObjectHandler(Log.objects.get(pk=pk)).to_dict() for pk in pks ]
 
-        for i in range(len(logs)):
-            logs[i].properties = logs[i].get_properties()
-        
-        js_data = {'graphs': [log.g6() for log in logs]}
+        js_data = {'graphs': [log['g6'] for log in logs]}
         js_data = json.dumps(js_data)
         return render(request, self.template_name, {'logs': logs, 'js_data': js_data})
 

@@ -1,3 +1,4 @@
+from math import log
 import os 
 from django.db import models
 import pandas as pd 
@@ -15,6 +16,7 @@ from pm4py import discover_directly_follows_graph
 from pm4py import get_event_attribute_values
 from helpers.dfg_helper import convert_dfg_to_dict
 from helpers.g6_helpers import dfg_dict_to_g6
+from django.forms.models import model_to_dict
 
 class Log(models.Model):
     log_file = models.FileField(upload_to='uploaded_logs')
@@ -33,12 +35,36 @@ class Log(models.Model):
             log = xes_importer_factory.apply(self.log_file.path)
         return log
 
+
+
+
+
+
+
+
+class LogObjectHandler():
+    log_object = None 
+    log = None
+    def __init__(self, log_object):
+        self.log_object = log_object
+        self.log = log_object.pm4py_log()
+
+    def pm4py_log(self):
+        return self.log 
+
+    def pk(self):
+        return self.log.pk
+
     def to_df(self):
-        return log_to_data_frame.apply(self.pm4py_log())
+        return log_to_data_frame.apply(self.log)
 
     def get_properties(self):
-        properties = get_properties(self.pm4py_log())
-        return properties
+        log_df = self.to_df()
+        results = {}
+        for columnName, columnValues in log_df.iteritems():
+            values_without_na = columnValues.dropna()
+            results[columnName] = list(set(values_without_na.tolist()))
+        return results
 
     def generate_dfg(self, percentage_most_freq_edges=100, type=dfg_discovery.Variants.FREQUENCY):
         log = self.pm4py_log()
@@ -48,11 +74,9 @@ class Log(models.Model):
         return dfg
     def g6(self):
         return dfg_dict_to_g6(convert_dfg_to_dict(self.generate_dfg()))
+    
     def to_dict(self):
-        return {
-            "id:": self.id, 
-            "file_path:": self.log_file.path,
-            "properties:": self.get_properties(),
-            "dfg": convert_dfg_to_dict(self.generate_dfg()),
-            "g6": dfg_dict_to_g6(convert_dfg_to_dict(self.generate_dfg()))
-        }
+        ret = model_to_dict(self.log_object)
+        ret['g6'] = self.g6()
+        ret['properties'] = self.get_properties()
+        return ret
