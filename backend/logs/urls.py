@@ -8,6 +8,7 @@ urlpatterns = [
     path('select_comparisons',TemplateView.as_view(template_name='select_comparisons.html')),
     path('select_logs',views.SelectLogs.as_view()),
     path('compare', views.CompareLogs.as_view()),
-    path('json/compare', views.CompareLogsJson.as_view())
+    path('json/compare', views.CompareLogsJson.as_view()),
+    path('',TemplateView.as_view(template_name='select_comparisons.html'))
 ]
 
